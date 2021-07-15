@@ -18,16 +18,16 @@ print("Connected to database.")
 print("Loading all data...")
 cursor = database.cursor()
 cursor.execute("SELECT symbol,high,low,open,close,volume,date FROM history ORDER BY date ASC LIMIT 500000")
-cursor = cursor.fetchall()
-all_history_items = np.array(cursor)
-cursor = cursor.clear()
+columns = cursor.description
+all_history_items = [{columns[index][0]: column for index, column in enumerate(value)} for value in cursor.fetchall()]
+cursor = cursor.close()
 print("Loaded all data.")
 
 # Retrieve all tickers
 print("Retrieving all tickers...")
 all_tickers = []
 for item in all_history_items:
-    symbol = item[0]
+    symbol = item['symbol']
     if not all_tickers.__contains__(symbol):
         all_tickers.append(symbol)
 print("Retrieved all tickers.")
@@ -38,10 +38,10 @@ valid_tickers = []
 for ticker in all_tickers:
     count = 0
     for item in all_history_items:
-        symbol = item[0]
+        symbol = item['symbol']
         if symbol == ticker:
             count = count + 1
-    if count > 2000:
+    if count > 2500:
         valid_tickers.append(ticker)
 print("Filtered valid tickers.")
 
@@ -49,7 +49,7 @@ print("Filtered valid tickers.")
 print("Filtering history items...")
 valid_history_items = []
 for item in all_history_items:
-    symbol = item[0]
+    symbol = item['symbol']
     if not valid_tickers.__contains__(symbol):
         valid_history_items.append(item)
 print("Filtered history items.")
