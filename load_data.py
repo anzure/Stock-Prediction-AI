@@ -1,7 +1,7 @@
 import mysql.connector
-import numpy as np
 import pickle
 import sys as system
+import pandas as pd
 
 # Connect to database
 print("Connecting to database...")
@@ -16,17 +16,14 @@ print("Connected to database.")
 
 # Load all data
 print("Loading all data...")
-cursor = database.cursor()
-cursor.execute("SELECT symbol,high,low,open,close,volume,date FROM history ORDER BY date ASC LIMIT 500000")
-columns = cursor.description
-all_history_items = [{columns[index][0]: column for index, column in enumerate(value)} for value in cursor.fetchall()]
-cursor = cursor.close()
+query = "SELECT symbol,high,low,open,close,volume,date FROM history ORDER BY date ASC LIMIT 500000"
+all_history_items = pd.read_sql(query, database)
 print("Loaded all data.")
 
 # Retrieve all tickers
 print("Retrieving all tickers...")
 all_tickers = []
-for item in all_history_items:
+for index, item in all_history_items.iterrows():
     symbol = item['symbol']
     if not all_tickers.__contains__(symbol):
         all_tickers.append(symbol)
@@ -37,7 +34,7 @@ print("Filtering valid tickers...")
 valid_tickers = []
 for ticker in all_tickers:
     count = 0
-    for item in all_history_items:
+    for index, item in all_history_items.iterrows():
         symbol = item['symbol']
         if symbol == ticker:
             count = count + 1
@@ -48,9 +45,9 @@ print("Filtered valid tickers.")
 # Filter history items
 print("Filtering history items...")
 valid_history_items = []
-for item in all_history_items:
+for index, item in all_history_items.iterrows():
     symbol = item['symbol']
-    if not valid_tickers.__contains__(symbol):
+    if valid_tickers.__contains__(symbol):
         valid_history_items.append(item)
 print("Filtered history items.")
 
