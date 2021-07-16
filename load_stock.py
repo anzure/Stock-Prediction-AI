@@ -1,5 +1,5 @@
 import mysql.connector
-import pickle
+import numpy as np
 import sys as system
 import pandas as pd
 
@@ -16,15 +16,19 @@ print("Connected to database.")
 
 # Load all data
 print("Loading all data...")
-query = "SELECT symbol,high,low,open,close,volume,date FROM history ORDER BY date ASC LIMIT 500000"
-all_history_items = pd.read_sql(query, database)
+cursor = database.cursor()
+cursor.execute("SELECT symbol,high,low,open,close,volume,date FROM history ORDER BY date ASC LIMIT 500000")
+columns = [i[0] for i in cursor.description]
+cursor = cursor.fetchall()
+all_history_items = np.array(cursor)
+cursor = cursor.clear()
 print("Loaded all data.")
 
 # Retrieve all tickers
 print("Retrieving all tickers...")
 all_tickers = []
-for index, item in all_history_items.iterrows():
-    symbol = item['symbol']
+for item in all_history_items:
+    symbol = item[0]
     if not all_tickers.__contains__(symbol):
         all_tickers.append(symbol)
 print("Retrieved all tickers.")
@@ -34,28 +38,28 @@ print("Filtering valid tickers...")
 valid_tickers = []
 for ticker in all_tickers:
     count = 0
-    for index, item in all_history_items.iterrows():
-        symbol = item['symbol']
+    for item in all_history_items:
+        symbol = item[0]
         if symbol == ticker:
             count = count + 1
-    if count > 2500:
+    if count > 2000:
         valid_tickers.append(ticker)
 print("Filtered valid tickers.")
 
 # Filter history items
 print("Filtering history items...")
 valid_history_items = []
-for index, item in all_history_items.iterrows():
-    symbol = item['symbol']
+for item in all_history_items:
+    symbol = item[0]
     if valid_tickers.__contains__(symbol):
         valid_history_items.append(item)
 print("Filtered history items.")
 
 # Save training data
 print("Saving dataset...")
-pickle_out = open("dataset.pickle", "wb")
-pickle.dump(valid_history_items, pickle_out)
-pickle_out.close()
+dataframe = pd.DataFrame(data=valid_history_items, columns=columns)
+dataframe.to_csv("dataset.csv", sep=";", index_label="id")
+dataframe.to_pickle("dataset.pickle")
 print("Saved dataset.")
 
 # Print result
