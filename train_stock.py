@@ -10,8 +10,8 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Dropout, LSTM
 from sklearn.preprocessing import RobustScaler
 
-df = pd.read_csv("dataset.csv", delimiter=";", parse_dates=["date"], index_col="date")
-df = df.drop(columns=['symbol'])
+df = pd.read_csv("dataset.csv", delimiter=";")
+df = df.drop(columns=['symbol', 'date', 'id'])
 
 train_size = int(len(df) * 0.9)
 test_size = len(df) - train_size
@@ -41,7 +41,7 @@ def create_dataset(X, y, time_steps=1):
     return np.array(Xs), np.array(ys)
 
 
-TIME_STEPS = 90
+TIME_STEPS = 30
 X_train, y_train = create_dataset(train, train.close, time_steps=TIME_STEPS)
 X_test, y_test = create_dataset(test, test.close, time_steps=TIME_STEPS)
 
@@ -63,11 +63,23 @@ model.add(keras.layers.Dense(units=1))
 model.compile(loss='mean_squared_error', optimizer='adam')
 history = model.fit(
     X_train, y_train,
-    epochs=30,
+    epochs=15,
     batch_size=32,
     validation_split=0.1,
     shuffle=False
 )
 
-plt.plot(history.history['loss'], label='train')
-plt.plot(history.history['val_loss'], label='validation')
+# plt.plot(history.history['loss'], label='train')
+# plt.plot(history.history['val_loss'], label='validation')
+# plt.legend()
+# plt.show()
+
+y_pred = model.predict(X_test)
+y_train_inv = cnt_transformer.inverse_transform(y_train.reshape(1, -1))
+y_test_inv = cnt_transformer.inverse_transform(y_test.reshape(1, -1))
+y_pred_inv = cnt_transformer.inverse_transform(y_pred)
+
+plt.plot(y_test_inv.flatten(), marker='.', label='actual')
+plt.plot(y_pred_inv.flatten(), 'r', marker='.', label='predicted')
+plt.legend()
+plt.show()
