@@ -15,11 +15,9 @@ database = mysql.connector.connect(
 print("Connected to database.")
 
 # Load all data
-company = "ATEA.XOSL"
 print("Loading all data...")
 cursor = database.cursor()
-cursor.execute(
-    f"SELECT symbol,high,low,open,close,volume,date FROM history WHERE symbol='{company}' ORDER BY date ASC LIMIT 500000")
+cursor.execute("SELECT symbol,high,low,open,close,volume,date FROM history ORDER BY date ASC LIMIT 500000")
 columns = [i[0] for i in cursor.description]
 cursor = cursor.fetchall()
 all_history_items = np.array(cursor)
