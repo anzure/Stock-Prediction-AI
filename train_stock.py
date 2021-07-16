@@ -44,10 +44,10 @@ def create_dataset(X, y, time_steps=1, future_day=1):
     return np.array(Xs), np.array(ys)
 
 
-TIME_STEPS = 120
-FUTURE_DAY = 90
-X_train, y_train = create_dataset(train, train.close, time_steps=TIME_STEPS)
-X_test, y_test = create_dataset(test, test.close, time_steps=TIME_STEPS)
+TIME_STEPS = 60
+FUTURE_DAY = 10
+X_train, y_train = create_dataset(train, train.close, time_steps=TIME_STEPS, future_day=FUTURE_DAY)
+X_test, y_test = create_dataset(test, test.close, time_steps=TIME_STEPS, future_day=FUTURE_DAY)
 
 # [samples, time_steps, n_features]
 print(X_train.shape, y_train.shape)
@@ -65,16 +65,25 @@ else:
             )
         )
     )
-    model.add(keras.layers.Dropout(rate=0.2))
+    model.add(keras.layers.Dropout(rate=0.3))
     model.add(keras.layers.Dense(units=1))
     model.compile(loss='mean_squared_error', optimizer='adam')
+    model_checkpoint = f"{MODEL_NAME}/checkpoint"
     history = model.fit(
         X_train, y_train,
-        epochs=15,
-        batch_size=32,
-        validation_split=0.1,
+        epochs=256,
+        batch_size=2560,
+        validation_data=(X_test, y_test),
+        callbacks=[
+            tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=128, mode="min"),
+            tf.keras.callbacks.ModelCheckpoint(
+                model_checkpoint, monitor='val_loss', save_best_only=True,
+                save_weights_only=True, mode='min'
+            )
+        ],
         shuffle=False
     )
+    model.load_weights(model_checkpoint)
     model.save(MODEL_NAME)
 
 # plt.plot(history.history['loss'], label='train')

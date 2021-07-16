@@ -3,7 +3,7 @@ import numpy as np
 import sys as system
 import pandas as pd
 
-TICKER_ID = "ATEA.XOSL"
+TICKER_ID = "TEL.XOSL"
 
 # Connect to database
 print("Connecting to database...")
