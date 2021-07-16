@@ -12,6 +12,7 @@ from tensorflow.keras.layers import Dense, Dropout, LSTM
 from sklearn.preprocessing import RobustScaler
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.preprocessing import LabelEncoder
+from random import randrange
 import os
 
 MODEL_NAME = "aksjer.model"
@@ -24,9 +25,13 @@ df = df.drop(columns=['date', 'id'])
 train_size = int(len(df) * 0.9)
 test_size = len(df) - train_size
 # train, test = df.iloc[0:train_size], df.iloc[train_size:len(df)]
+val_id = df['symbol'][randrange(len(df))]
 train = df[df['symbol'] != TICKER_ID]
-test = df[df['symbol'] == TICKER_ID].iloc[2300:]
-print(train.shape, test.shape)
+train = df[df['symbol'] != val_id]
+test = df[df['symbol'] == TICKER_ID].iloc[2000:]
+val = df[df['symbol'] == val_id]
+print(f"Val ticker id: {val_id}")
+print(train.shape, test.shape, val.shape)
 
 f_columns = ['high', 'low', 'open', 'volume']
 f_transformer = RobustScaler()
@@ -35,14 +40,19 @@ l_encoder = LabelEncoder()
 
 f_transformer = f_transformer.fit(train[f_columns].to_numpy())
 cnt_transformer = cnt_transformer.fit(train[['close']])
+l_encoder = l_encoder.fit(df[['symbol']])
 
 train.loc[:, f_columns] = f_transformer.transform(train[f_columns].to_numpy())
 train['close'] = cnt_transformer.transform(train[['close']])
-train['symbol'] = l_encoder.fit_transform(train[['symbol']])
+train['symbol'] = l_encoder.transform(train[['symbol']])
 
 test.loc[:, f_columns] = f_transformer.transform(test[f_columns].to_numpy())
 test['close'] = cnt_transformer.transform(test[['close']])
-test['symbol'] = l_encoder.fit_transform(test[['symbol']])
+test['symbol'] = l_encoder.transform(test[['symbol']])
+
+val.loc[:, f_columns] = f_transformer.transform(val[f_columns].to_numpy())
+val['close'] = cnt_transformer.transform(val[['close']])
+val['symbol'] = l_encoder.transform(val[['symbol']])
 
 
 def create_dataset(X, y, time_steps=1, future_day=1):
@@ -54,14 +64,16 @@ def create_dataset(X, y, time_steps=1, future_day=1):
     return np.array(Xs), np.array(ys)
 
 
-TIME_STEPS = 60
-FUTURE_DAY = 30
+TIME_STEPS = 120
+FUTURE_DAY = 90
 X_train, y_train = create_dataset(train, train.close, time_steps=TIME_STEPS)
 X_test, y_test = create_dataset(test, test.close, time_steps=TIME_STEPS)
+X_val, y_val = create_dataset(val, val.close, time_steps=TIME_STEPS)
 
 # [samples, time_steps, n_features]
 print(X_train.shape, y_train.shape)
 print(X_test.shape, y_test.shape)
+print(X_val.shape, y_val.shape)
 
 if os.path.exists(MODEL_NAME):
     model = keras.models.load_model(MODEL_NAME)
@@ -82,7 +94,7 @@ else:
         X_train, y_train,
         epochs=1,
         batch_size=256,
-        validation_split=0.1,
+        validation_data=(X_val, y_val),
         shuffle=False
     )
     model.save(MODEL_NAME)
