@@ -35,19 +35,18 @@ test.loc[:, f_columns] = f_transformer.transform(test[f_columns].to_numpy())
 test['close'] = cnt_transformer.transform(test[['close']])
 
 
-def create_dataset(X, y, time_steps=1, future_day=1):
+def create_dataset(X, y, time_steps=1):
     Xs, ys = [], []
-    for i in range(time_steps, len(X) - future_day):
-        v = X.iloc[i - time_steps:i].to_numpy()
+    for i in range(time_steps, len(X)):
+        v = X.iloc[i - time_steps: i].to_numpy()
         Xs.append(v)
-        ys.append(y.iloc[i + future_day])
+        ys.append(y.iloc[i])
     return np.array(Xs), np.array(ys)
 
 
-TIME_STEPS = 60
-FUTURE_DAY = 10
-X_train, y_train = create_dataset(train, train.close, time_steps=TIME_STEPS, future_day=FUTURE_DAY)
-X_test, y_test = create_dataset(test, test.close, time_steps=TIME_STEPS, future_day=FUTURE_DAY)
+TIME_STEPS = 90
+X_train, y_train = create_dataset(train, train.close, time_steps=TIME_STEPS)
+X_test, y_test = create_dataset(test, test.close, time_steps=TIME_STEPS)
 
 # [samples, time_steps, n_features]
 print(X_train.shape, y_train.shape)
@@ -75,7 +74,7 @@ else:
         batch_size=2560,
         validation_data=(X_test, y_test),
         callbacks=[
-            tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=128, mode="min"),
+            tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=64, mode="min"),
             tf.keras.callbacks.ModelCheckpoint(
                 model_checkpoint, monitor='val_loss', save_best_only=True,
                 save_weights_only=True, mode='min'
